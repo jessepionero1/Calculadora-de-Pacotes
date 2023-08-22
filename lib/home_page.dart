@@ -47,22 +47,30 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void calculateCapacityAndWeight() {
+    // Intenta convertir los valores de los campos de texto a números decimales
     double? height = double.tryParse(heightController.text);
     double? length = double.tryParse(lengthController.text);
     double? width = double.tryParse(widthController.text);
-    double? weight = double.tryParse(weightController.text); // Nuevo
+    double? weight = double.tryParse(weightController.text);
 
+    // Si alguno de los valores no es válido, muestra un mensaje de error y retorna
     if (height == null || length == null || width == null || weight == null) {
       Fluttertoast.showToast(msg: "Por favor, introduce números válidos");
       return;
     }
 
+    // Crea un paquete con las dimensiones ingresadas
     BoxDimensions package =
         BoxDimensions(height: height, length: length, width: width);
 
-    // Calculando capacidad
+    // Establecemos el peso maximo de los 3 tipos de caja
+    const double SMALL_BOX_WEIGHT_LIMIT = 4.1;
+    const double MEDIUM_BOX_WEIGHT_LIMIT = 15.1;
+    const double LARGE_BOX_WEIGHT_LIMIT = 25.1;
+
     try {
       setState(() {
+        // Calcula la capacidad de paquetes para cada tipo de caja
         smallBoxCapacity = boxCalculator.calculatePackageCapacity(
             package, boxCalculator.smallBox);
         mediumBoxCapacity = boxCalculator.calculatePackageCapacity(
@@ -70,19 +78,44 @@ class _MyHomePageState extends State<MyHomePage> {
         largeBoxCapacity = boxCalculator.calculatePackageCapacity(
             package, boxCalculator.largeBox);
 
-        // Calculando pesos
+        // Calcula el peso por hoja
         weightPerSheet = weight / 100;
+
+        // Calcula el peso total para cada tipo de caja
         totalWeightSmallBox = weight * smallBoxCapacity;
         totalWeightMediumBox = weight * mediumBoxCapacity;
         totalWeightLargeBox = weight * largeBoxCapacity;
 
+// Después de calcular la cantidad de paquetes basado en dimensiones, realizamos otra
+// validación para garantizar que el peso total no exceda el límite de cada caja.
+// Si el peso total excede el límite, ajustamos la cantidad de paquetes
+// para que el peso total sea menor que el peso límite de la caja.
+// Asegura que el peso total no exceda el límite de cada caja
+        // Asegura que el peso total no exceda el límite de cada caja
+        // Si se excede, ajusta la capacidad de la caja y recalcula el peso total
+        // la funcion floor() redondea al numero entero abajo example  4.7 resultado 4
+        if (totalWeightSmallBox > SMALL_BOX_WEIGHT_LIMIT) {
+          smallBoxCapacity = (SMALL_BOX_WEIGHT_LIMIT / weight).floor();
+          totalWeightSmallBox = weight * smallBoxCapacity;
+        }
+
+        if (totalWeightMediumBox > MEDIUM_BOX_WEIGHT_LIMIT) {
+          mediumBoxCapacity = (MEDIUM_BOX_WEIGHT_LIMIT / weight).floor();
+          totalWeightMediumBox = weight * mediumBoxCapacity;
+        }
+
+        if (totalWeightLargeBox > LARGE_BOX_WEIGHT_LIMIT) {
+          largeBoxCapacity = (LARGE_BOX_WEIGHT_LIMIT / weight).floor();
+          totalWeightLargeBox = weight * largeBoxCapacity;
+        }
+
         _showResults = true;
       });
     } catch (error) {
-      Fluttertoast.showToast(msg: "Aconteceu um erro ao calcular: $error");
+      Fluttertoast.showToast(msg: "Aconteció un error al calcular: $error");
     }
 
-    // Fechar o teclado
+    // Cierra el teclado virtual
     FocusScope.of(context).unfocus();
   }
 
@@ -127,7 +160,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   controller: weightController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                      labelText: 'Peso del pacote de 100 peças (kg)'),
+                      labelText: 'Peso do pacote de 100 peças (kg)'),
                 ),
                 SizedBox(height: 16),
                 ElevatedButton(
@@ -167,7 +200,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: const Center(
                     child: Text(
-                      'Desenvolvido por SCSIT e Jesse Condori. v1.0',
+                      'Desenvolvido por SCSIT | Jesse Condori. v2.0',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,

@@ -1,4 +1,4 @@
-package com.example.caixa_celera
+package com.scsit.caixa_celera1
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -9,5 +9,6 @@ class BoxDimensions {
     required this.width,
   });
 
+// obtenemos el volumen del paquete
   double get volume => height * length * width;
 }
