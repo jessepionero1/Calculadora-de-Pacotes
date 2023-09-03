@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/intl.dart';
 import 'box_calculator.dart';
 import 'box_dimensions.dart';
 
@@ -14,6 +16,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController widthController = TextEditingController();
   final TextEditingController weightController =
       TextEditingController(); // Nuevo
+
+  final TextEditingController resultController = TextEditingController();
 
   BoxCalculator boxCalculator = BoxCalculator();
   int smallBoxCapacity = 0;
@@ -46,6 +50,15 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  String formatNumber(int number) {
+    return NumberFormat("#,##0", "es_ES").format(number);
+  }
+
+  String formatWeight(double weight, [int decimalPlaces = 4]) {
+    String pattern = "#,##0." + "0" * decimalPlaces;
+    return NumberFormat(pattern, "es_ES").format(weight);
+  }
+
   void calculateCapacityAndWeight() {
     // Intenta convertir los valores de los campos de texto a números decimales
     double? height = double.tryParse(heightController.text);
@@ -57,6 +70,51 @@ class _MyHomePageState extends State<MyHomePage> {
     if (height == null || length == null || width == null || weight == null) {
       Fluttertoast.showToast(msg: "Por favor, introduce números válidos");
       return;
+    }
+
+    void formatResults() {
+      String smallBoxText = smallBoxCapacity > 0
+          ? "${formatNumber(smallBoxCapacity * 100)} unidades por caixa"
+          : "[Não tem capacidade] por caixa";
+
+      String mediumBoxText = mediumBoxCapacity > 0
+          ? "${formatNumber(mediumBoxCapacity * 100)} unidades por caixa"
+          : "[Não tem capacidade] por caixa";
+
+      String largeBoxText = largeBoxCapacity > 0
+          ? "${formatNumber(largeBoxCapacity * 100)} unidades por caixa"
+          : "[Não tem capacidade] por caixa";
+
+      String smallBoxWeight = smallBoxCapacity > 0
+          ? "${formatWeight(totalWeightSmallBox, 2)} kg"
+          : "[0,00] kg";
+
+      String mediumBoxWeight = mediumBoxCapacity > 0
+          ? "${formatWeight(totalWeightMediumBox, 2)} kg"
+          : "[0,00] kg";
+
+      String largeBoxWeight = largeBoxCapacity > 0
+          ? "${formatWeight(totalWeightLargeBox, 2)} kg"
+          : "[0,00] kg";
+
+      String formattedText = '''
+Padrão de Observações - Detalhes do Produto
+Detalhes de Peso:
+- Peso por Unidade: ${formatWeight(weightPerSheet)} kg
+- Peso por Pacote (100 unidades): ${formatWeight(weight, 3)} kg
+
+Capacidade de Caixas:
+- Caixas Pequenas: $smallBoxText
+- Caixas Médias: $mediumBoxText
+- Caixas Grandes: $largeBoxText
+
+Detalhes de Peso das Caixas:
+- Peso da Caixa Pequena: $smallBoxWeight
+- Peso da Caixa Média: $mediumBoxWeight
+- Peso da Caixa Grande: $largeBoxWeight
+  ''';
+
+      resultController.text = formattedText;
     }
 
     // Crea un paquete con las dimensiones ingresadas
@@ -115,6 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
       Fluttertoast.showToast(msg: "Aconteció un error al calcular: $error");
     }
 
+    formatResults();
     // Cierra el teclado virtual
     FocusScope.of(context).unfocus();
   }
@@ -168,94 +227,43 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Text('Calcular'),
                 ),
                 SizedBox(height: 16),
+
                 if (_showResults) ...[
                   // Verifique a variável aqui
-                  SheetWeightResult(weight: weightPerSheet),
-                  TextResult(
-                    boxType: "pequena",
-                    capacity: smallBoxCapacity,
-                    weight: totalWeightSmallBox,
-                  ),
-                  TextResult(
-                    boxType: "media",
-                    capacity: mediumBoxCapacity,
-                    weight: totalWeightMediumBox,
-                  ),
-                  TextResult(
-                    boxType: "grande",
-                    capacity: largeBoxCapacity,
-                    weight: totalWeightLargeBox,
+                  TextField(
+                    controller: resultController,
+                    maxLines: 15, // Puedes ajustar este valor según necesites
+                    readOnly: true,
+                    onTap: () {
+                      Clipboard.setData(
+                          ClipboardData(text: resultController.text));
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Resultados',
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.copy),
+                    ),
                   ),
                 ],
-              ],
-            ),
-            Visibility(
-              visible: !_isKeyboardVisible,
-              child: Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  color: Colors.blue.withOpacity(0.0),
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: const Center(
-                    child: Text(
-                      'Desenvolvido por SCSIT | Jesse Condori. v2.0',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
+                Visibility(
+                  visible: !_isKeyboardVisible,
+                  child: Container(
+                    color: Colors.blue.withOpacity(0.0),
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: const Center(
+                      child: Text(
+                        'Desenvolvido por SCSIT | Jesse Condori. v3.0',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class TextResult extends StatelessWidget {
-  final String boxType;
-  final int capacity;
-  final double weight; // Nuevo
-
-  TextResult(
-      {required this.boxType, required this.capacity, required this.weight});
-
-  @override
-  Widget build(BuildContext context) {
-    String message = capacity > 0
-        ? 'Caixa $boxType: ${capacity * 100} unidades .\n Peso total: ${weight.toStringAsFixed(2)} kg'
-        : 'O pacote não tem capaciade na caixa $boxType';
-
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Text(
-          message,
-          style: TextStyle(fontSize: 18),
-        ),
-      ),
-    );
-  }
-}
-
-class SheetWeightResult extends StatelessWidget {
-  final double weight;
-
-  SheetWeightResult({required this.weight});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Text(
-          "Peso de uma peça: ${weight.toStringAsFixed(4)} kg",
-          style: TextStyle(fontSize: 18),
         ),
       ),
     );
